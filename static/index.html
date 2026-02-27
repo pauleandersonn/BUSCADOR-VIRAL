@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buscador Viral</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #060c06;
+      --surface:    #0d130d;
+      --surface-2:  #111911;
+      --text:       #dde8dd;
+      --muted:      #4a6a4a;
+      --muted-2:    #8aaa8a;
+      --accent:     #00e676;
+      --accent-dim: rgba(0,230,118,.12);
+      --teal:       #00d4a8;
+      --yellow:     #d4e847;
+      --red:        #f87171;
+      --border:     #1a2a1a;
+      --border-2:   #243424;
+      --radius:     6px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── Particles canvas ── */
+    #particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    /* ── Layout wrapper ── */
+    .wrap { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 28px 0 0;
+    }
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem; font-weight: 700; letter-spacing: .08em;
+      color: var(--accent); text-decoration: none;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .logo::before {
+      content: ''; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 8px var(--accent);
+      display: inline-block; animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; box-shadow: 0 0 8px var(--accent); }
+      50%      { opacity: .5; box-shadow: 0 0 16px var(--accent); }
+    }
+    .logo-tagline { font-size: 0.65rem; color: var(--muted); font-weight: 400; letter-spacing: .04em; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .corner-label { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); letter-spacing: .06em; }
+    .btn-config {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem; letter-spacing: .06em;
+      color: var(--muted-2); background: transparent;
+      border: 1px solid var(--border-2); border-radius: var(--radius);
+      padding: 6px 14px; text-decoration: none; cursor: pointer;
+      transition: color .2s, border-color .2s;
+    }
+    .btn-config:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Hero ── */
+    .hero { padding: 48px 0 32px; text-align: center; }
+    .hero-eyebrow {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem; letter-spacing: .2em; color: var(--accent);
+      text-transform: uppercase; margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 700; line-height: 1.05;
+      color: #fff; letter-spacing: -.02em;
+    }
+    .hero h1 span { color: var(--teal); }
+    .hero p {
+      margin-top: 14px; color: var(--muted-2);
+      font-size: 0.88rem; line-height: 1.6; max-width: 480px; margin-inline: auto;
+    }
+
+    /* ── Section navigation ── */
+    .section-nav {
+      display: flex; gap: 4px; justify-content: center;
+      margin: 28px 0 0; flex-wrap: wrap;
+    }
+    .snav {
+      font-family: 'Space Mono', monospace; font-size: 0.72rem;
+      letter-spacing: .1em; text-transform: uppercase;
+      padding: 8px 22px; border-radius: 99px;
+      border: 1px solid var(--border-2);
+      background: transparent; color: var(--muted);
+      cursor: pointer; transition: all .18s;
+    }
+    .snav:hover { color: var(--muted-2); border-color: var(--border-2); }
+    .snav.active {
+      border-color: var(--accent); color: var(--accent);
+      background: var(--accent-dim);
+      box-shadow: 0 0 12px rgba(0,230,118,.15);
+    }
+
+    /* ── Auto-refresh timer ── */
+    #refresh-bar {
+      display: none; text-align: center; margin: 10px 0 0;
+      font-family: 'Space Mono', monospace; font-size: 0.62rem;
+      color: var(--muted); letter-spacing: .06em;
+    }
+    #refresh-bar span { color: var(--accent); }
+
+    /* ── BUSCA section ── */
+    #sec-busca { }
+    .search-wrap { max-width: 620px; margin: 28px auto 24px; }
+    .search-box {
+      position: relative; display: flex; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border-2);
+      border-radius: var(--radius); padding: 6px 6px 6px 16px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .search-box:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), 0 0 20px rgba(0,230,118,.1);
+    }
+    .search-icon { color: var(--muted); flex-shrink: 0; align-self: center; }
+    .search-box input {
+      flex: 1; background: transparent; border: none; outline: none;
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem;
+      color: var(--text); padding: 8px 8px 8px 10px;
+    }
+    .search-box input::placeholder { color: var(--muted); }
+    .btn-search {
+      background: var(--accent); color: #060c06;
+      border: none; border-radius: 4px;
+      padding: 10px 22px; font-family: 'Space Mono', monospace;
+      font-size: 0.75rem; font-weight: 700; letter-spacing: .06em;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      transition: background .2s, box-shadow .2s;
+    }
+    .btn-search:hover { background: #00ff88; box-shadow: 0 0 16px rgba(0,230,118,.4); }
+    .btn-search:disabled { background: var(--border-2); color: var(--muted); cursor: not-allowed; box-shadow: none; }
+
+    .filters-section { margin-bottom: 20px; }
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.62rem; letter-spacing: .14em; color: var(--muted);
+      text-transform: uppercase; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::before, .section-label::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+    .chip {
+      padding: 5px 14px; border-radius: 99px;
+      border: 1px solid var(--border-2);
+      background: transparent; color: var(--muted-2);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem; font-weight: 500; cursor: pointer;
+      transition: all .15s; user-select: none;
+    }
+    .chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .chip.needs-key { border-color: #2a3a1a; color: #6a8a4a; }
+    .chip.needs-key.active { border-color: var(--yellow); color: var(--yellow); background: rgba(212,232,71,.08); }
+
+    .options-row {
+      display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+      justify-content: center; margin-bottom: 24px;
+    }
+    .options-row label {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 0.78rem; color: var(--muted); cursor: pointer;
+      font-family: 'Space Mono', monospace;
+    }
+    .options-row input[type="number"] {
+      width: 50px; padding: 3px 7px;
+      border: 1px solid var(--border-2); border-radius: 4px;
+      background: var(--surface); color: var(--text);
+      font-family: 'Space Mono', monospace; font-size: 0.78rem; outline: none;
+    }
+    .options-row input[type="checkbox"] { accent-color: var(--accent); }
+
+    /* ── MUNDO / PAÍS section ── */
+    #sec-mundo, #sec-pais {
+      display: none; padding: 28px 0 16px; text-align: center;
+    }
+    .trending-desc {
+      font-family: 'Space Mono', monospace; font-size: 0.72rem;
+      color: var(--muted); letter-spacing: .06em; margin-bottom: 20px;
+    }
+    .btn-refresh {
+      font-family: 'Space Mono', monospace; font-size: 0.72rem;
+      letter-spacing: .08em; padding: 9px 24px;
+      background: transparent; border: 1px solid var(--border-2);
+      color: var(--muted-2); border-radius: var(--radius);
+      cursor: pointer; transition: all .18s;
+    }
+    .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── CIDADES section ── */
+    #sec-cidades { display: none; padding: 28px 0 16px; }
+    .city-wrap { max-width: 540px; margin: 0 auto; }
+    .city-intro {
+      text-align: center; font-family: 'Space Mono', monospace;
+      font-size: 0.72rem; color: var(--muted); letter-spacing: .06em; margin-bottom: 18px;
+    }
+    .city-box {
+      display: flex; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border-2);
+      border-radius: var(--radius); padding: 6px 6px 6px 16px;
+      transition: border-color .2s;
+    }
+    .city-box:focus-within { border-color: var(--accent); }
+    .city-box input {
+      flex: 1; background: transparent; border: none; outline: none;
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.92rem;
+      color: var(--text); padding: 8px 8px 8px 4px;
+    }
+    .city-box input::placeholder { color: var(--muted); }
+    .city-suggestions {
+      display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 14px;
+    }
+    .city-chip {
+      padding: 4px 14px; border-radius: 99px;
+      border: 1px solid var(--border-2); background: transparent;
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.76rem;
+      color: var(--muted-2); cursor: pointer; transition: all .15s;
+    }
+    .city-chip:hover { border-color: var(--teal); color: var(--teal); }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 4px 0 20px; }
+
+    /* ── Loading / Status ── */
+    #loading {
+      display: none; text-align: center; padding: 48px 20px;
+      font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--muted);
+    }
+    .loader-ring {
+      width: 32px; height: 32px; border: 2px solid var(--border-2);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .8s linear infinite; margin: 0 auto 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #error {
+      display: none; border: 1px solid #3a1a1a; background: #140808;
+      border-radius: var(--radius); padding: 12px 16px;
+      color: var(--red); font-family: 'Space Mono', monospace; font-size: 0.78rem;
+      margin-bottom: 16px;
+    }
+    #status {
+      font-family: 'Space Mono', monospace; font-size: 0.7rem;
+      color: var(--muted); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #status::before { content: '⊡'; color: var(--accent); }
+
+    .config-notices { margin-bottom: 14px; }
+    .config-notice {
+      border: 1px solid #2a2a14; background: #14140a;
+      border-radius: var(--radius); padding: 10px 14px; margin-bottom: 6px;
+      font-family: 'Space Mono', monospace; font-size: 0.72rem; color: #8a8a4a;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .config-notice a { color: var(--yellow); text-decoration: none; }
+
+    /* ── Source filter tabs (results area) ── */
+    .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tab {
+      padding: 4px 14px; border-radius: 99px;
+      border: 1px solid var(--border);
+      font-family: 'Space Mono', monospace; font-size: 0.7rem;
+      color: var(--muted); cursor: pointer; background: transparent;
+      transition: all .15s;
+    }
+    .tab.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .tab:hover { color: var(--muted-2); }
+
+    /* ── Ideas panel ── */
+    #ideas-panel {
+      display: none; margin-bottom: 28px;
+      border: 1px solid var(--border-2); border-radius: var(--radius);
+      background: var(--surface); overflow: hidden;
+    }
+    .ideas-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 18px; border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .ideas-title {
+      font-family: 'Space Mono', monospace; font-size: 0.7rem;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ideas-title::before { content: '//'; color: var(--muted); }
+    .ideas-niche { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); }
+    #ideas-loading {
+      padding: 18px; font-family: 'Space Mono', monospace;
+      font-size: 0.72rem; color: var(--muted);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .ideas-list { display: none; flex-direction: column; }
+    /* resumo da tendência */
+    .ai-resumo {
+      padding: 12px 18px; border-top: 1px solid var(--border);
+      background: var(--surface-2);
+      font-size: 0.82rem; color: var(--muted-2); line-height: 1.5;
+      font-style: italic;
+    }
+    .ai-resumo span { color: var(--accent-2); font-style: normal; font-family: 'Space Mono', monospace; font-size: 0.65rem; margin-right: 6px; }
+    /* meta row: formato + titulo */
+    .ai-meta-row {
+      display: flex; gap: 10px; padding: 10px 18px;
+      border-top: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .ai-formato {
+      font-family: 'Space Mono', monospace; font-size: 0.68rem;
+      background: var(--accent-dim); color: var(--accent);
+      border: 1px solid var(--accent); border-radius: 4px;
+      padding: 3px 10px; letter-spacing: .08em;
+    }
+    .ai-titulo {
+      font-size: 0.82rem; color: var(--text-2);
+      border-left: 2px solid var(--accent-2); padding-left: 10px;
+      flex: 1; min-width: 0;
+    }
+    /* hashtags */
+    .ai-hashtags {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 10px 18px; border-top: 1px solid var(--border);
+    }
+    .ai-hashtag {
+      font-family: 'Space Mono', monospace; font-size: 0.66rem;
+      color: var(--accent-2); background: rgba(0,212,168,.08);
+      border: 1px solid rgba(0,212,168,.25); border-radius: 4px;
+      padding: 2px 8px; cursor: pointer; transition: all .15s;
+    }
+    .ai-hashtag:hover { background: rgba(0,212,168,.18); }
+    /* ideas */
+    .idea-item {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 14px 18px; border-top: 1px solid var(--border);
+      transition: background .15s;
+    }
+    .idea-item:hover { background: var(--surface-2); }
+    .idea-icon {
+      font-family: 'Space Mono', monospace; font-size: 0.7rem;
+      color: var(--accent); flex-shrink: 0; padding-top: 2px;
+    }
+    .idea-text { font-size: 0.86rem; color: var(--text); line-height: 1.55; }
+
+    /* ── Results list ── */
+    #results { display: flex; flex-direction: column; gap: 2px; }
+
+    /* card */
+    .card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: background .15s, border-color .15s;
+      position: relative;
+    }
+    .card:hover { background: var(--surface-2); border-color: var(--border-2); }
+    .card.is-viral { border-color: rgba(212,232,71,.3); }
+    .card.is-viral:hover { border-color: rgba(212,232,71,.5); }
+
+    .card-thumb-wrap {
+      width: 56px; height: 42px; flex-shrink: 0;
+      border-radius: 4px; overflow: hidden; background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+    .card-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card-thumb-placeholder {
+      width: 100%; height: 100%; display: flex;
+      align-items: center; justify-content: center;
+      font-size: 1.1rem; color: var(--muted);
+    }
+
+    .card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+
+    .card-title a {
+      font-size: 0.92rem; font-weight: 600; color: var(--teal);
+      text-decoration: none; line-height: 1.35;
+      display: block;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .card-title a:hover { color: var(--accent); }
+
+    .card-translation {
+      font-size: 0.76rem; color: var(--muted-2);
+      font-style: italic; line-height: 1.3;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .card-meta {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'Space Mono', monospace; font-size: 0.62rem;
+      color: var(--muted); margin-top: 2px; flex-wrap: wrap;
+    }
+    .card-meta .sep { color: var(--border-2); }
+
+    .card-right {
+      display: flex; flex-direction: column; align-items: flex-end;
+      gap: 5px; flex-shrink: 0;
+    }
+    .badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem; letter-spacing: .06em;
+      padding: 2px 8px; border-radius: 3px; border: 1px solid;
+      white-space: nowrap; text-transform: uppercase;
+    }
+    .badge-Reddit     { border-color: #ff4500; color: #ff4500; }
+    .badge-HackerNews { border-color: #ff6600; color: #ff6600; }
+    .badge-Trends     { border-color: #4285f4; color: #4285f4; }
+    .badge-YouTube    { border-color: #f00;    color: #f00; }
+    .badge-TwitterX   { border-color: #1d9bf0; color: #1d9bf0; }
+    .badge-TikTok     { border-color: #00c4cc; color: #00c4cc; }
+    .badge-LinkedIn   { border-color: #0a66c2; color: #0a66c2; }
+    .badge-Facebook   { border-color: #1877f2; color: #1877f2; }
+    .badge-Instagram  { border-color: #e1306c; color: #e1306c; }
+    .badge-Notcias    { border-color: #f59e0b; color: #f59e0b; }
+    .badge-Threads    { border-color: #a855f7; color: #a855f7; }
+    .badge-viral-pill {
+      border-color: var(--yellow); color: var(--yellow);
+      background: rgba(212,232,71,.08);
+      animation: flicker 3s infinite;
+    }
+    @keyframes flicker {
+      0%,100% { opacity: 1; } 50% { opacity: .7; }
+    }
+
+    .card-score {
+      font-family: 'Space Mono', monospace; font-size: 0.68rem;
+      color: var(--accent); white-space: nowrap;
+    }
+
+    #results-empty {
+      text-align: center; padding: 60px 20px;
+      font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--muted);
+      display: none;
+    }
+
+    /* ── Footer corners ── */
+    .page-corners {
+      position: fixed; bottom: 16px; left: 0; right: 0; z-index: 1;
+      display: flex; justify-content: space-between;
+      padding: 0 24px; pointer-events: none;
+    }
+    .corner-text {
+      font-family: 'Space Mono', monospace; font-size: 0.6rem;
+      color: var(--muted); letter-spacing: .06em; opacity: .5;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<div class="wrap">
+  <header>
+    <a class="logo" href="/">
+      BUSCADOR_VIRAL
+      <span class="logo-tagline">// inteligência de conteúdo</span>
+    </a>
+    <div class="header-right">
+      <span class="corner-label">©2026</span>
+      <a class="btn-config" href="/config.html">[ CONFIGURAR ]</a>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-eyebrow">— plataforma de inteligência viral —</div>
+    <h1>Encontre o Próximo<br><span>Conteúdo Viral.</span></h1>
+    <p>Monitore tendências em tempo real no Reddit, YouTube, HackerNews e muito mais.</p>
+  </div>
+
+  <!-- Section navigation -->
+  <div class="section-nav">
+    <button class="snav active" id="snav-busca" onclick="setSection('busca')">BUSCA</button>
+    <button class="snav" id="snav-mundo" onclick="setSection('mundo')">MUNDO</button>
+    <button class="snav" id="snav-pais" onclick="setSection('pais')">PAÍS</button>
+    <button class="snav" id="snav-cidades" onclick="setSection('cidades')">CIDADES</button>
+  </div>
+  <div id="refresh-bar">↻ próxima atualização em <span id="countdown">60:00</span></div>
+
+  <!-- BUSCA section -->
+  <div id="sec-busca">
+    <div class="search-wrap">
+      <div class="search-box">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="niche" placeholder="nicho, palavra-chave ou tópico...">
+        <button class="btn-search" id="btn-buscar" onclick="buscar()">BUSCAR »</button>
+      </div>
+    </div>
+
+    <div class="filters-section">
+      <div class="section-label">fontes</div>
+      <div class="chips" id="sources-grid"></div>
+    </div>
+
+    <div class="options-row">
+      <label>resultados: <input type="number" id="limit" value="10" min="5" max="50"></label>
+      <label><input type="checkbox" id="hide-empty" checked> ocultar avisos</label>
+    </div>
+  </div>
+
+  <!-- MUNDO section -->
+  <div id="sec-mundo">
+    <p class="trending-desc">// TENDÊNCIAS VIRAIS GLOBAIS AGORA</p>
+    <button class="btn-refresh" onclick="loadTrending('mundo')">↻ CARREGAR TENDÊNCIAS</button>
+  </div>
+
+  <!-- PAÍS section -->
+  <div id="sec-pais">
+    <p class="trending-desc">// TENDÊNCIAS VIRAIS NO BRASIL AGORA</p>
+    <button class="btn-refresh" onclick="loadTrending('pais')">↻ CARREGAR TENDÊNCIAS</button>
+  </div>
+
+  <!-- CIDADES section -->
+  <div id="sec-cidades">
+    <div class="city-wrap">
+      <p class="city-intro">// BUSQUE TENDÊNCIAS VIRAIS EM SUA CIDADE</p>
+      <div class="city-box">
+        <input type="text" id="city-input" placeholder="Ex: Manaus, São Paulo, Rio de Janeiro..." onkeydown="if(event.key==='Enter') loadTrending('cidade')">
+        <button class="btn-search" onclick="loadTrending('cidade')">BUSCAR »</button>
+      </div>
+      <div class="city-suggestions">
+        <div class="city-chip" onclick="selectCity('Manaus')">Manaus</div>
+        <div class="city-chip" onclick="selectCity('São Paulo')">São Paulo</div>
+        <div class="city-chip" onclick="selectCity('Rio de Janeiro')">Rio de Janeiro</div>
+        <div class="city-chip" onclick="selectCity('Brasília')">Brasília</div>
+        <div class="city-chip" onclick="selectCity('Fortaleza')">Fortaleza</div>
+        <div class="city-chip" onclick="selectCity('Salvador')">Salvador</div>
+        <div class="city-chip" onclick="selectCity('Belo Horizonte')">Belo Horizonte</div>
+        <div class="city-chip" onclick="selectCity('Curitiba')">Curitiba</div>
+        <div class="city-chip" onclick="selectCity('Recife')">Recife</div>
+        <div class="city-chip" onclick="selectCity('Porto Alegre')">Porto Alegre</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div id="loading">
+    <div class="loader-ring"></div>
+    BUSCANDO EM TODAS AS FONTES...
+  </div>
+  <div id="error"></div>
+  <div id="status"></div>
+  <div class="config-notices" id="config-notices"></div>
+
+  <div id="ideas-panel">
+    <div class="ideas-header">
+      <div class="ideas-title">IDEIAS DE CONTEÚDO</div>
+      <div class="ideas-niche" id="ideas-niche-label"></div>
+    </div>
+    <div id="ideas-loading">
+      <div class="loader-ring" style="width:16px;height:16px;border-width:2px;margin:0;"></div>
+      PROCESSANDO COM IA...
+    </div>
+    <div class="ideas-list" id="ideas-list"></div>
+  </div>
+
+  <div class="tabs" id="tabs" style="display:none"></div>
+  <div id="results"></div>
+  <div id="results-empty">// NENHUM RESULTADO ENCONTRADO</div>
+</div>
+
+<div class="page-corners">
+  <span class="corner-text">©2026_BUSCADOR_VIRAL</span>
+  <span class="corner-text">[SCROLL TO DISCOVER]</span>
+</div>
+
+<script>
+  // ── Particles ──
+  (function() {
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    let W, H, dots = [];
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    for (let i = 0; i < 80; i++) {
+      dots.push({
+        x: Math.random() * 3000, y: Math.random() * 3000,
+        r: Math.random() * 2.2 + .3,
+        vx: (Math.random() - .5) * .15, vy: (Math.random() - .5) * .15,
+        a: Math.random() * .7 + .1, bright: Math.random() < .15,
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      dots.forEach(d => {
+        d.x += d.vx; d.y += d.vy;
+        if (d.x < 0) d.x = W; if (d.x > W) d.x = 0;
+        if (d.y < 0) d.y = H; if (d.y > H) d.y = 0;
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fillStyle = d.bright ? `rgba(0,230,118,${d.a})` : `rgba(0,180,80,${d.a * .4})`;
+        ctx.fill();
+        if (d.bright) {
+          ctx.beginPath(); ctx.arc(d.x, d.y, d.r * 3, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(0,230,118,${d.a * .07})`; ctx.fill();
+        }
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  // ── Sources ──
+  const SOURCES = [
+    { id: "reddit",     label: "Reddit",      needsKey: false },
+    { id: "hackernews", label: "HackerNews",  needsKey: false },
+    { id: "youtube",    label: "YouTube",     needsKey: false },
+    { id: "trends",     label: "G. Trends",   needsKey: false },
+    { id: "twitter",    label: "Twitter / X", needsKey: true  },
+    { id: "tiktok",     label: "TikTok",      needsKey: true  },
+    { id: "instagram",  label: "Instagram",   needsKey: true  },
+    { id: "facebook",   label: "Facebook",    needsKey: true  },
+    { id: "linkedin",   label: "LinkedIn",    needsKey: true  },
+  ];
+  const active = new Set(["reddit", "hackernews", "youtube", "trends"]);
+  const grid = document.getElementById("sources-grid");
+  SOURCES.forEach(src => {
+    const btn = document.createElement("div");
+    btn.className = "chip" + (src.needsKey ? " needs-key" : "") + (active.has(src.id) ? " active" : "");
+    btn.textContent = src.label;
+    btn.onclick = () => { active.has(src.id) ? active.delete(src.id) : active.add(src.id); btn.classList.toggle("active"); };
+    grid.appendChild(btn);
+  });
+
+  document.getElementById("niche").addEventListener("keydown", e => { if (e.key === "Enter") buscar(); });
+
+  let lastResults = [], lastFilter = "all", translations = {};
+  let currentSection = "busca";
+  let lastSearchNiche = "";
+  let lastTrendingScope = "";
+  let lastTrendingCity = "";
+
+  // ── Auto-refresh (every 60 min) ──
+  let refreshInterval = null;
+  let countdownInterval = null;
+  let secondsLeft = 3600;
+
+  function startAutoRefresh(action) {
+    clearInterval(refreshInterval);
+    clearInterval(countdownInterval);
+    secondsLeft = 3600;
+    document.getElementById("refresh-bar").style.display = "block";
+    updateCountdown();
+    countdownInterval = setInterval(() => {
+      secondsLeft--;
+      if (secondsLeft <= 0) {
+        secondsLeft = 3600;
+        action();
+      }
+      updateCountdown();
+    }, 1000);
+  }
+
+  function stopAutoRefresh() {
+    clearInterval(refreshInterval);
+    clearInterval(countdownInterval);
+    document.getElementById("refresh-bar").style.display = "none";
+  }
+
+  function updateCountdown() {
+    const m = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+    const s = String(secondsLeft % 60).padStart(2, "0");
+    document.getElementById("countdown").textContent = `${m}:${s}`;
+  }
+
+  // ── Section switching ──
+  function setSection(section) {
+    currentSection = section;
+    ["busca", "mundo", "pais", "cidades"].forEach(s => {
+      document.getElementById("sec-" + s).style.display = s === section ? (section === "busca" ? "block" : "block") : "none";
+      document.getElementById("snav-" + s).classList.toggle("active", s === section);
+    });
+    // Clear results when switching
+    clearResults();
+    stopAutoRefresh();
+
+    if (section === "mundo") {
+      loadTrending("mundo");
+    } else if (section === "pais") {
+      loadTrending("pais");
+    }
+  }
+
+  // Init section display
+  document.getElementById("sec-mundo").style.display = "none";
+  document.getElementById("sec-pais").style.display = "none";
+  document.getElementById("sec-cidades").style.display = "none";
+
+  function clearResults() {
+    lastResults = []; translations = {};
+    document.getElementById("results").innerHTML = "";
+    document.getElementById("results-empty").style.display = "none";
+    document.getElementById("tabs").style.display = "none";
+    document.getElementById("ideas-panel").style.display = "none";
+    document.getElementById("status").textContent = "";
+    document.getElementById("error").style.display = "none";
+    document.getElementById("config-notices").innerHTML = "";
+  }
+
+  function selectCity(city) {
+    document.getElementById("city-input").value = city;
+    loadTrending("cidade");
+  }
+
+  // ── Render results ──
+  function _formatPubDate(pubDate) {
+    try {
+      const d = new Date(pubDate);
+      const now = new Date();
+      const diffH = Math.round((now - d) / 36e5);
+      if (diffH < 1) return "agora";
+      if (diffH < 24) return diffH + "h atrás";
+      const diffD = Math.round(diffH / 24);
+      if (diffD === 1) return "ontem";
+      if (diffD < 7) return diffD + "d atrás";
+      return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+    } catch { return "recente"; }
+  }
+
+  function renderResults(filter) {
+    lastFilter = filter;
+    const container = document.getElementById("results");
+    container.innerHTML = "";
+    const list = (filter === "all" ? lastResults : lastResults.filter(r => r.source === filter))
+      .map(r => ({ ...r, _idx: lastResults.indexOf(r) }));
+
+    if (!list.length) { document.getElementById("results-empty").style.display = "block"; return; }
+    document.getElementById("results-empty").style.display = "none";
+
+    list.forEach(item => {
+      const badgeClass = "badge badge-" + item.source.replace(/[^a-zA-Z]/g, "").replace("Twitter", "TwitterX");
+      // Display raw view/upvote count; fall back to normalized score for sources without raw values
+      const rawDisplay = item.raw_views ?? item.raw_upvotes ?? item.score;
+      const isNews = item.source === "Notícias";
+      const scoreLabel = item.source === "YouTube"   ? "👁"
+                       : item.source === "Twitter/X" ? "♥"
+                       : item.source === "TikTok"    ? "▶"
+                       : item.source === "Instagram" ? "♥"
+                       : item.source === "Threads"   ? "💬"
+                       : isNews ? "📰"
+                       : "↑";
+      // News items: show pub_date instead of a number
+      const score = isNews
+        ? (item.pub_date ? _formatPubDate(item.pub_date) : "recente")
+        : rawDisplay >= 1e6 ? (rawDisplay/1e6).toFixed(1)+"M"
+        : rawDisplay >= 1e3 ? (rawDisplay/1e3).toFixed(1)+"K"
+        : rawDisplay.toLocaleString();
+      const meta = [item.subreddit, item.comments > 0 ? item.comments.toLocaleString()+" comentários" : ""]
+        .filter(Boolean).join(" / ");
+
+      const thumb = item.thumbnail
+        ? `<img class="card-thumb" src="${item.thumbnail}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML='<div class=card-thumb-placeholder>◈</div>'">`
+        : `<div class="card-thumb-placeholder">◈</div>`;
+
+      const trans = translations[item._idx];
+      const transHtml = trans && trans !== item.title
+        ? `<div class="card-translation">» ${trans}</div>` : "";
+
+      const viralCount = item.virality_count || 1;
+      const isViral = viralCount >= 2;
+      const viralBadge = isViral
+        ? `<span class="badge badge-viral-pill">VIRAL ×${viralCount}</span>`
+        : "";
+
+      const card = document.createElement("div");
+      card.className = "card" + (isViral ? " is-viral" : "");
+      card.innerHTML = `
+        <div class="card-thumb-wrap">${thumb}</div>
+        <div class="card-body">
+          <div class="card-title"><a href="${item.url}" target="_blank" rel="noopener">${item.title}</a></div>
+          ${transHtml}
+          <div class="card-meta">
+            <span>${meta || item.source}</span>
+          </div>
+        </div>
+        <div class="card-right">
+          ${viralBadge}
+          <span class="${badgeClass}">${item.source}</span>
+          <span class="card-score">${scoreLabel} ${score}</span>
+        </div>`;
+      container.appendChild(card);
+    });
+  }
+
+  function applyTranslations(arr) {
+    translations = {};
+    arr.forEach(t => { translations[t.index] = t.text; });
+    renderResults(lastFilter);
+  }
+
+  // ── Tabs (platform filter, no numbers) ──
+  function renderTabs(results) {
+    const el = document.getElementById("tabs");
+    const sources = [...new Set(results.map(r => r.source))];
+    if (sources.length <= 1) { el.style.display = "none"; return; }
+    el.style.display = "flex"; el.innerHTML = "";
+
+    const all = document.createElement("div");
+    all.className = "tab active";
+    all.textContent = "Todos";
+    all.onclick = () => { setTab(all); renderResults("all"); };
+    el.appendChild(all);
+
+    sources.forEach(src => {
+      const t = document.createElement("div");
+      t.className = "tab";
+      t.textContent = src;
+      t.onclick = () => { setTab(t); renderResults(src); };
+      el.appendChild(t);
+    });
+  }
+  function setTab(el) { document.querySelectorAll(".tab").forEach(t => t.classList.remove("active")); el.classList.add("active"); }
+
+  // ── Ideas + AIOS enrichment ──
+  function renderIdeas(data) {
+    const list = document.getElementById("ideas-list");
+    list.innerHTML = "";
+
+    // Resumo da tendência
+    if (data.resumo) {
+      const r = document.createElement("div");
+      r.className = "ai-resumo";
+      r.innerHTML = `<span>AIOS</span>${data.resumo}`;
+      list.appendChild(r);
+    }
+
+    // Formato ideal + título viral
+    if (data.formato || data.titulo) {
+      const meta = document.createElement("div");
+      meta.className = "ai-meta-row";
+      if (data.formato) meta.innerHTML += `<div class="ai-formato">${data.formato}</div>`;
+      if (data.titulo)  meta.innerHTML += `<div class="ai-titulo">${data.titulo}</div>`;
+      list.appendChild(meta);
+    }
+
+    // Hashtags
+    if (data.hashtags && data.hashtags.length) {
+      const tags = document.createElement("div");
+      tags.className = "ai-hashtags";
+      data.hashtags.forEach(tag => {
+        const t = document.createElement("span");
+        t.className = "ai-hashtag";
+        t.textContent = tag;
+        t.onclick = () => navigator.clipboard.writeText(tag);
+        tags.appendChild(t);
+      });
+      list.appendChild(tags);
+    }
+
+    // Ideias de conteúdo
+    (data.ideas || []).forEach(idea => {
+      const div = document.createElement("div");
+      div.className = "idea-item";
+      div.innerHTML = `<div class="idea-icon">▶</div><div class="idea-text">${idea}</div>`;
+      list.appendChild(div);
+    });
+
+    document.getElementById("ideas-loading").style.display = "none";
+    list.style.display = "flex";
+  }
+
+  async function runAnalyze(niche, results) {
+    const panel = document.getElementById("ideas-panel");
+    panel.style.display = "block";
+    document.getElementById("ideas-loading").style.display = "flex";
+    document.getElementById("ideas-list").style.display = "none";
+    document.getElementById("ideas-niche-label").textContent = `nicho: ${niche}`;
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ niche, results }),
+      });
+      if (!res.ok) { const e = await res.json(); document.getElementById("ideas-loading").innerHTML = `// ${e.detail||"erro"}`; return; }
+      const data = await res.json();
+      if (data.translations) applyTranslations(data.translations);
+      renderIdeas(data);
+    } catch(e) {
+      document.getElementById("ideas-loading").innerHTML = "// ERRO DE CONEXÃO";
+    }
+  }
+
+  // ── BUSCA ──
+  async function buscar() {
+    const niche = document.getElementById("niche").value.trim();
+    if (!niche || !active.size) return;
+    lastSearchNiche = niche;
+    const limit = document.getElementById("limit").value;
+    const hideEmpty = document.getElementById("hide-empty").checked;
+
+    document.getElementById("btn-buscar").disabled = true;
+    document.getElementById("loading").style.display = "block";
+    clearResults();
+    document.getElementById("loading").style.display = "block";
+
+    try {
+      const params = new URLSearchParams({ niche, sources: [...active].join(","), limit });
+      const res  = await fetch(`/api/search?${params}`);
+      const data = await res.json();
+
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("btn-buscar").disabled = false;
+
+      if (!res.ok) {
+        document.getElementById("error").textContent = "// ERRO: " + (data.detail||res.statusText);
+        document.getElementById("error").style.display = "block";
+        return;
+      }
+
+      document.getElementById("status").textContent = `${data.total} resultado(s) para "${data.niche}"`;
+
+      if (!hideEmpty) {
+        (data.config_needed||[]).forEach(item => {
+          const div = document.createElement("div");
+          div.className = "config-notice";
+          div.innerHTML = `<span>${item.title}</span><a href="${item.url}" target="_blank">→ configurar</a>`;
+          document.getElementById("config-notices").appendChild(div);
+        });
+      }
+
+      lastResults = data.results;
+      if (!data.results.length) { document.getElementById("results-empty").style.display = "block"; return; }
+
+      renderTabs(data.results);
+      renderResults("all");
+      runAnalyze(niche, data.results);
+
+      // auto-refresh every hour
+      startAutoRefresh(buscar);
+    } catch(err) {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("btn-buscar").disabled = false;
+      document.getElementById("error").textContent = "// ERRO DE CONEXÃO: " + err.message;
+      document.getElementById("error").style.display = "block";
+    }
+  }
+
+  // ── TRENDING (Mundo / País / Cidades) ──
+  async function loadTrending(scope) {
+    const city = scope === "cidade" ? (document.getElementById("city-input")?.value?.trim() || "") : "";
+    lastTrendingScope = scope;
+    lastTrendingCity = city;
+
+    document.getElementById("loading").style.display = "block";
+    clearResults();
+    document.getElementById("loading").style.display = "block";
+
+    try {
+      const params = new URLSearchParams({ scope, limit: 20 });
+      if (city) params.set("city", city);
+      const res = await fetch(`/api/trending?${params}`);
+      const data = await res.json();
+
+      document.getElementById("loading").style.display = "none";
+
+      if (!res.ok) {
+        document.getElementById("error").textContent = "// ERRO: " + (data.detail || res.statusText);
+        document.getElementById("error").style.display = "block";
+        return;
+      }
+
+      const scopeLabel = { mundo: "Global", pais: "Brasil", cidade: data.city || city }[scope] || scope;
+      document.getElementById("status").textContent = `${data.total} tendências — ${scopeLabel}`;
+
+      lastResults = data.results;
+      if (!data.results.length) { document.getElementById("results-empty").style.display = "block"; return; }
+
+      renderTabs(data.results);
+      renderResults("all");
+
+      // auto-refresh every hour
+      startAutoRefresh(() => loadTrending(lastTrendingScope));
+    } catch(err) {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("error").textContent = "// ERRO DE CONEXÃO: " + err.message;
+      document.getElementById("error").style.display = "block";
+    }
+  }
+</script>
+</body>
+</html>

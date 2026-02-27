@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configurar APIs — Buscador Viral</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f2ed; --surface: #ffffff; --text: #1a1a1a;
+      --muted: #6b7280; --accent: #4B5548; --accent-h: #3a433a;
+      --border: #e5e7eb; --radius: 12px;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; min-height: 100vh; }
+
+    .page-wrap { max-width: 760px; margin: 0 auto; padding: 32px 24px 60px; }
+
+    .back { display: inline-flex; align-items: center; gap: 6px; color: var(--accent);
+      text-decoration: none; font-size: 0.82rem; font-weight: 600; margin-bottom: 28px; }
+    .back:hover { color: var(--accent-h); }
+
+    h1 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 700; }
+    .subtitle { color: var(--muted); font-size: 0.88rem; margin-top: 8px; margin-bottom: 28px; line-height: 1.5; }
+
+    .platform { background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+    .platform-header { display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; cursor: pointer; gap: 10px; transition: background .15s; }
+    .platform-header:hover { background: #faf9f7; }
+    .platform-title { display: flex; align-items: center; gap: 10px; }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.ok      { background: #22c55e; }
+    .status-dot.missing { background: #f59e0b; }
+    .platform-name { font-size: 0.95rem; font-weight: 600; }
+    .platform-tag { font-size: 0.68rem; font-weight: 700; padding: 3px 10px;
+      border-radius: 99px; border: 1.5px solid; white-space: nowrap; }
+    .tag-free { border-color: #22c55e; color: #16a34a; }
+    .tag-key  { border-color: #f59e0b; color: #b45309; }
+    .toggle-icon { color: var(--muted); font-size: 0.8rem; flex-shrink: 0; }
+
+    .platform-body { display: none; padding: 20px; border-top: 1px solid var(--border); }
+    .platform-body.open { display: block; }
+
+    .steps { margin-bottom: 16px; }
+    .step { display: flex; gap: 10px; margin-bottom: 10px; font-size: 0.84rem; line-height: 1.55; color: var(--muted); }
+    .step-num { color: var(--accent); font-weight: 700; flex-shrink: 0; min-width: 20px; }
+    .step a { color: var(--accent); }
+    .step code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px;
+      font-size: 0.82rem; color: var(--text); border: 1px solid var(--border); }
+
+    .field-row { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+    .field-row label { font-size: 0.82rem; font-weight: 500; color: var(--muted); min-width: 140px; }
+    .field-row input {
+      flex: 1; padding: 10px 14px; background: var(--bg);
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Montserrat', sans-serif; font-size: 0.85rem;
+      color: var(--text); outline: none; min-width: 200px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .field-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(75,85,72,.1); }
+
+    .save-btn { margin-top: 16px; padding: 10px 24px; background: var(--accent); color: #fff;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 700;
+      transition: background .2s; }
+    .save-btn:hover { background: var(--accent-h); }
+    .save-btn:disabled { background: #b0b7ae; cursor: not-allowed; }
+
+    .msg { margin-top: 10px; font-size: 0.82rem; }
+    .msg.ok  { color: #16a34a; }
+    .msg.err { color: #dc2626; }
+
+    .free-note { font-size: 0.84rem; color: #16a34a; padding: 12px 14px;
+      border: 1.5px solid #bbf7d0; border-radius: 8px; background: #f0fdf4; }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <a class="back" href="/">← Voltar para a busca</a>
+    <h1>Configurar Plataformas</h1>
+    <p class="subtitle">Configure as APIs para ativar cada plataforma. Plataformas sem chave já funcionam automaticamente.</p>
+    <div id="platforms-container"></div>
+  </div>
+
+  <script>
+    const PLATFORMS = [
+      {
+        id: "google_ai",
+        name: "IA — Tradução + Ideias (Google Gemini)",
+        color: "#4285f4",
+        tag: "key",
+        tagLabel: "Precisa de chave",
+        fields: [
+          { key: "GOOGLE_API_KEY", label: "API Key", placeholder: "AIzaSy..." },
+        ],
+        steps: [
+          { text: 'Acesse <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> e faça login com sua conta Google.' },
+          { text: 'Clique em <code>Create API Key</code> e copie a chave gerada.' },
+          { text: 'Cole a chave no campo abaixo e clique em Salvar.' },
+          { text: 'Gratuito: até 1.500 requisições/dia com o Gemini 2.0 Flash.' },
+        ],
+      },
+      {
+        id: "reddit_hn_trends_yt",
+        name: "Reddit + HackerNews + Google Trends + YouTube",
+        color: "#0f0",
+        tag: "free",
+        tagLabel: "Já funcionam",
+        fields: [],
+        steps: [
+          { text: "Essas 4 plataformas não precisam de nenhuma configuração." },
+          { text: "Já estão ativas automaticamente na busca." },
+        ],
+        isFree: true,
+      },
+      {
+        id: "twitter",
+        name: "Twitter / X",
+        color: "#1d9bf0",
+        tag: "key",
+        tagLabel: "Precisa de chave",
+        fields: [
+          { key: "TWITTER_BEARER_TOKEN", label: "Bearer Token", placeholder: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAxx..." },
+        ],
+        steps: [
+          { text: 'Acesse <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank">developer.twitter.com</a> e faça login com sua conta do Twitter/X.' },
+          { text: 'Clique em <code>+ Add App</code> ou crie um projeto novo.' },
+          { text: 'No painel do app, vá em <code>Keys and Tokens</code>.' },
+          { text: 'Em <code>Bearer Token</code>, clique em <code>Generate</code> e copie o token.' },
+          { text: 'Cole o token no campo abaixo e clique em Salvar.' },
+        ],
+      },
+      {
+        id: "tiktok",
+        name: "TikTok",
+        color: "#69c9d0",
+        tag: "key",
+        tagLabel: "Precisa de chave",
+        fields: [
+          { key: "TIKTOK_CLIENT_KEY",    label: "Client Key",    placeholder: "aw1234abc..." },
+          { key: "TIKTOK_CLIENT_SECRET", label: "Client Secret", placeholder: "xyz9876..." },
+        ],
+        steps: [
+          { text: 'Acesse <a href="https://developers.tiktok.com" target="_blank">developers.tiktok.com</a> e faça login.' },
+          { text: 'Clique em <code>Manage apps</code> → <code>Connect an app</code>.' },
+          { text: 'Preencha os dados básicos do app (nome, categoria, etc.).' },
+          { text: 'Após criar, vá em <code>App details</code> e copie o <code>Client Key</code> e o <code>Client Secret</code>.' },
+          { text: 'Cole nos campos abaixo e clique em Salvar.' },
+        ],
+      },
+      {
+        id: "facebook_instagram",
+        name: "Facebook + Instagram",
+        color: "#1877f2",
+        tag: "key",
+        tagLabel: "Precisa de chave",
+        fields: [
+          { key: "FACEBOOK_ACCESS_TOKEN", label: "Access Token", placeholder: "EAABsbCS..." },
+        ],
+        steps: [
+          { text: 'Acesse <a href="https://developers.facebook.com" target="_blank">developers.facebook.com</a> e faça login.' },
+          { text: 'Clique em <code>Meus Apps</code> → <code>Criar App</code>. Escolha tipo <code>Negócios</code>.' },
+          { text: 'Dentro do app, vá em <code>Ferramentas</code> → <code>Explorador da Graph API</code>.' },
+          { text: 'Selecione seu app, clique em <code>Gerar Token de Acesso</code>. Marque as permissões: <code>pages_read_engagement</code>, <code>instagram_basic</code>.' },
+          { text: 'Copie o token gerado, cole abaixo e clique em Salvar.' },
+        ],
+      },
+      {
+        id: "linkedin",
+        name: "LinkedIn",
+        color: "#0a66c2",
+        tag: "key",
+        tagLabel: "Precisa de chave",
+        fields: [
+          { key: "LINKEDIN_ACCESS_TOKEN", label: "Access Token (API)", placeholder: "AQXt..." },
+        ],
+        steps: [
+          { text: 'Acesse <a href="https://developer.linkedin.com" target="_blank">developer.linkedin.com</a> e faça login.' },
+          { text: 'Clique em <code>Create App</code>. Preencha nome, empresa e logo.' },
+          { text: 'Use o <a href="https://www.linkedin.com/developers/tools/oauth/token-generator" target="_blank">Token Generator</a> do LinkedIn para gerar um Access Token.' },
+          { text: 'Cole o Access Token abaixo e clique em Salvar. Ou use o login direto (seção abaixo).' },
+        ],
+      },
+      // ── SEÇÃO: LOGIN DIRETO (PLAYWRIGHT) ──
+      {
+        id: "pw_section_header",
+        name: "━━━━  Login Direto nas Redes Sociais (Playwright)  ━━━━",
+        color: "#00e676",
+        tag: "free",
+        tagLabel: "Browser automatizado",
+        fields: [],
+        steps: [
+          { text: "Use suas credenciais de login para buscar conteúdo viral de qualquer usuário nessas plataformas." },
+          { text: "As sessões ficam salvas — o login só acontece uma vez." },
+          { text: "Threads usa a mesma conta do Instagram (são da Meta)." },
+        ],
+        isFree: true,
+      },
+      {
+        id: "pw_instagram",
+        name: "Instagram — Login Direto",
+        color: "#e1306c",
+        tag: "key",
+        tagLabel: "Playwright",
+        fields: [
+          { key: "INSTAGRAM_EMAIL",    label: "E-mail / Usuário", placeholder: "seuemail@gmail.com", type: "text" },
+          { key: "INSTAGRAM_PASSWORD", label: "Senha",            placeholder: "••••••••",            type: "password" },
+        ],
+        steps: [
+          { text: "Use o e-mail e senha da sua conta Instagram." },
+          { text: "O sistema faz login automático e salva a sessão. Válido enquanto não expirar." },
+          { text: "Threads (Meta) também usará esta conta se THREADS_EMAIL não for configurado." },
+        ],
+      },
+      {
+        id: "pw_tiktok",
+        name: "TikTok — Login Direto",
+        color: "#69c9d0",
+        tag: "key",
+        tagLabel: "Playwright",
+        fields: [
+          { key: "TIKTOK_EMAIL",    label: "E-mail / Usuário", placeholder: "seuemail@gmail.com", type: "text" },
+          { key: "TIKTOK_PASSWORD", label: "Senha",            placeholder: "••••••••",            type: "password" },
+        ],
+        steps: [
+          { text: "Use o e-mail e senha da sua conta TikTok." },
+          { text: "O TikTok tem conteúdo público — o login melhora a qualidade dos resultados." },
+        ],
+      },
+      {
+        id: "pw_twitter",
+        name: "Twitter / X — Login Direto",
+        color: "#1d9bf0",
+        tag: "key",
+        tagLabel: "Playwright",
+        fields: [
+          { key: "TWITTER_EMAIL",    label: "E-mail / Usuário", placeholder: "seuemail@gmail.com", type: "text" },
+          { key: "TWITTER_PASSWORD", label: "Senha",            placeholder: "••••••••",            type: "password" },
+        ],
+        steps: [
+          { text: "Use o e-mail e senha da sua conta Twitter/X." },
+          { text: "Login necessário para visualizar métricas (likes, retweets)." },
+        ],
+      },
+      {
+        id: "pw_linkedin",
+        name: "LinkedIn — Login Direto",
+        color: "#0a66c2",
+        tag: "key",
+        tagLabel: "Playwright",
+        fields: [
+          { key: "LINKEDIN_EMAIL",    label: "E-mail",  placeholder: "seuemail@gmail.com", type: "text" },
+          { key: "LINKEDIN_PASSWORD", label: "Senha",   placeholder: "••••••••",            type: "password" },
+        ],
+        steps: [
+          { text: "Use o e-mail e senha da sua conta LinkedIn." },
+          { text: "Necessário para buscar posts públicos de qualquer usuário por palavra-chave." },
+        ],
+      },
+      {
+        id: "pw_threads",
+        name: "Threads — Login Direto",
+        color: "#000000",
+        tag: "key",
+        tagLabel: "Playwright",
+        fields: [
+          { key: "THREADS_EMAIL",    label: "E-mail Instagram/Meta", placeholder: "seuemail@gmail.com", type: "text" },
+          { key: "THREADS_PASSWORD", label: "Senha",                  placeholder: "••••••••",            type: "password" },
+        ],
+        steps: [
+          { text: "Threads usa conta Instagram (Meta). Pode ser a mesma conta do Instagram." },
+          { text: "Se deixar em branco, usará automaticamente as credenciais do Instagram." },
+        ],
+      },
+    ];
+
+    const container = document.getElementById("platforms-container");
+
+    PLATFORMS.forEach(p => {
+      const div = document.createElement("div");
+      div.className = "platform";
+
+      const tagClass = p.tag === "free" ? "tag-free" : "tag-key";
+      const dotClass = p.tag === "free" ? "ok" : "missing";
+
+      div.innerHTML = `
+        <div class="platform-header" onclick="toggle('body-${p.id}', 'icon-${p.id}')">
+          <div class="platform-title">
+            <div class="status-dot ${dotClass}" id="dot-${p.id}"></div>
+            <span class="platform-name" style="color:${p.color}">${p.name}</span>
+            <span class="platform-tag ${tagClass}">${p.tagLabel}</span>
+          </div>
+          <span class="toggle-icon" id="icon-${p.id}">▼</span>
+        </div>
+        <div class="platform-body" id="body-${p.id}">
+          ${p.isFree ? `<div class="free-note">✓ Nenhuma configuração necessária. Já está funcionando!</div>` : `
+            <div class="steps">
+              ${p.steps.map((s, i) => `<div class="step"><span class="step-num">${i+1}.</span><span>${s.text}</span></div>`).join("")}
+            </div>
+            ${p.fields.map(f => `
+              <div class="field-row">
+                <label>${f.label}:</label>
+                <input type="${f.type || 'password'}" id="field-${f.key}" placeholder="${f.placeholder}" autocomplete="off">
+              </div>
+            `).join("")}
+            <button class="save-btn" onclick="salvar('${p.id}')">Salvar</button>
+            <div class="msg" id="msg-${p.id}"></div>
+          `}
+        </div>
+      `;
+      container.appendChild(div);
+    });
+
+    // Load existing values
+    fetch("/api/config/get").then(r => r.json()).then(data => {
+      PLATFORMS.forEach(p => {
+        p.fields.forEach(f => {
+          const el = document.getElementById(`field-${f.key}`);
+          if (el && data[f.key]) {
+            el.value = data[f.key];
+            el.placeholder = "••••••• (já configurado)";
+            document.getElementById(`dot-${p.id}`).className = "status-dot ok";
+          }
+        });
+      });
+    }).catch(() => {});
+
+    function toggle(bodyId, iconId) {
+      const body = document.getElementById(bodyId);
+      const icon = document.getElementById(iconId);
+      body.classList.toggle("open");
+      icon.textContent = body.classList.contains("open") ? "▲" : "▼";
+    }
+
+    async function salvar(platformId) {
+      const platform = PLATFORMS.find(p => p.id === platformId);
+      if (!platform) return;
+
+      const payload = {};
+      for (const f of platform.fields) {
+        const val = document.getElementById(`field-${f.key}`)?.value?.trim();
+        if (val) payload[f.key] = val;
+      }
+
+      if (Object.keys(payload).length === 0) {
+        showMsg(platformId, "Preencha pelo menos um campo.", "err");
+        return;
+      }
+
+      const btn = document.querySelector(`#body-${platformId} .save-btn`);
+      btn.disabled = true;
+      btn.textContent = "Salvando...";
+
+      try {
+        const r = await fetch("/api/config/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await r.json();
+        if (r.ok) {
+          showMsg(platformId, "✓ Salvo com sucesso!", "ok");
+          document.getElementById(`dot-${platformId}`).className = "status-dot ok";
+          setTimeout(() => { btn.disabled = false; btn.textContent = "Salvar"; }, 2000);
+        } else {
+          showMsg(platformId, "Erro: " + (data.detail || "falha ao salvar"), "err");
+          btn.disabled = false; btn.textContent = "Salvar";
+        }
+      } catch (e) {
+        showMsg(platformId, "Erro de conexão: " + e.message, "err");
+        btn.disabled = false; btn.textContent = "Salvar";
+      }
+    }
+
+    function showMsg(platformId, text, type) {
+      const el = document.getElementById(`msg-${platformId}`);
+      el.textContent = text;
+      el.className = "msg " + type;
+    }
+  </script>
+</body>
+</html>
